@@ -1,5 +1,6 @@
 import os
 import yaml
+import mandrill
 from nameko.rpc import rpc
 from nameko.events import EventDispatcher, event_handler
 
@@ -24,6 +25,7 @@ class PaymentReceived(object):
         return replace
 
     def loadConfig(self):
+        """ Once per process """
         if self.config is None:
             with open(os.path.join(os.path.dirname(__file__),'config.yaml')) as f:
                 self.config = yaml.load(f)
@@ -36,6 +38,19 @@ class PaymentReceived(object):
             contents = contents.replace('{%s}' % key,str(value))
         return contents
 
+    def sendEmail(self,to,text):
+        config = self.loadConfig()
+        emailer = mandrill.Mandrill(apikey=config['email']['key'])
+        email = dict(
+            text = text,
+            subject = 'Payment received',
+            from_email = config['email']['sender'],
+            from_name = 'Claude Gibert',
+            to = [ dict(email = to) ],
+            key = config['email']['key']
+        )
+        emailer.messages.send(email)
+
 
     @event_handler('payments','payment_received')
     def handle_event(self,payload):
@@ -43,4 +58,5 @@ class PaymentReceived(object):
            we assume that we can trust the payload format
            if not we would need to validate it before using it
         """
-        print self.createEmail(self.createTemplateValues(payload))
+        text = self.createEmail(self.createTemplateValues(payload))
+        self.sendEmail(payload['payee']['email'],text)
