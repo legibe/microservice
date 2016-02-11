@@ -1,13 +1,17 @@
 import os
 import yaml
-import mandrill
 from nameko.rpc import rpc
 from nameko.events import EventDispatcher, event_handler
+from emailer import Emailer
 
 class PaymentReceived(object):
     name = "payment_received"
 
-    config = None
+    # would normally use a library of mine
+    with open(os.path.join(os.path.dirname(__file__),'config.yaml')) as f:
+        config = yaml.load(f)
+
+    emailer = Emailer()
 
     def createTemplateValues(self,payload):
         """ 
@@ -24,33 +28,11 @@ class PaymentReceived(object):
         replace['email'] = payload['client']['email']
         return replace
 
-    def loadConfig(self):
-        """ Once per process """
-        if self.config is None:
-            with open(os.path.join(os.path.dirname(__file__),'config.yaml')) as f:
-                self.config = yaml.load(f)
-        return self.config
-
     def createEmail(self,replace):
-        config = self.loadConfig()
-        contents = config['email']['template']
+        contents = self.config['email']['template']
         for key, value in replace.items():
             contents = contents.replace('{%s}' % key,str(value))
         return contents
-
-    def sendEmail(self,to,text):
-        config = self.loadConfig()
-        emailer = mandrill.Mandrill(apikey=config['email']['key'])
-        email = dict(
-            text = text,
-            subject = 'Payment received',
-            from_email = config['email']['sender'],
-            from_name = 'Claude Gibert',
-            to = [ dict(email = to) ],
-            key = config['email']['key']
-        )
-        emailer.messages.send(email)
-
 
     @event_handler('payments','payment_received')
     def handle_event(self,payload):
@@ -59,4 +41,9 @@ class PaymentReceived(object):
            if not we would need to validate it before using it
         """
         text = self.createEmail(self.createTemplateValues(payload))
-        self.sendEmail(payload['payee']['email'],text)
+        self.emailer.sendEmail(
+            sender = self.config['email']['sender'],
+            recipient = payload['payee']['email'],
+            text = text,
+            key = self.config['email']['key']
+        )
