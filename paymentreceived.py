@@ -33,7 +33,7 @@ class PaymentReceived(object):
             contents = contents.replace('{%s}' % key,str(value))
         return contents
 
-    @event_handler('payments','payment_received')
+    @event_handler('payment_service','payment_received')
     def handle_event(self,payload):
         """ 
            we assume that we can trust the payload format

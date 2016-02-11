@@ -1,0 +1,11 @@
+email:
+    template: |
+        Dear {payee},
+
+        You have received a payment of {amount} {currency} from {client} ({email}).
+
+        Yours,
+        student.com
+
+    key: lQ9MJyw4VOh7envgDmuKOw
+    sender: claude@synopticview.co.uk
