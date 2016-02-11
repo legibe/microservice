@@ -1,7 +1,7 @@
 import os
 import yaml
-from nameko.rpc import RpcProxy
 from nameko.events import EventDispatcher, event_handler
+from emailer import *
 
 class PaymentReceived(object):
     name = "payment_received"
@@ -10,7 +10,7 @@ class PaymentReceived(object):
     with open(os.path.join(os.path.dirname(__file__),'config.yaml')) as f:
         config = yaml.load(f)
 
-    emailer = RpcProxy("emailer")
+    emailer = Emailer()
 
     def createTemplateValues(self,payload):
         """ 
@@ -40,9 +40,27 @@ class PaymentReceived(object):
            if not we would need to validate it before using it
         """
         text = self.createEmail(self.createTemplateValues(payload))
-        print self.emailer.sendEmail(
-            sender = self.config['email']['sender'],
-            recipient = payload['payee']['email'],
-            text = text,
-            key = self.config['email']['key']
-        )
+        try:
+            self.emailer.sendEmail(
+                sender = self.config['email']['sender'],
+                recipient = payload['payee']['email'],
+                text = text,
+                key = self.config['email']['key']
+            )
+        except InvalidEmail as e:
+            # bad email address, input problem?
+            # need to log this and/or notify a metric system and/or admin
+            # re-raise for test, nameko catches it
+            raise
+        except FailedSendingEmail as e:
+            # the sender provided uses pub-sub.
+            # sending email could fail for different reasons
+            # a proper retry strategy could invold a persistent queue
+            # with a worker dedicated to re-trying with a maximum number 
+            # of retries. The number of failed emails and the size of 
+            # the persistent queue could be used as metrics showing
+            # the health of the email system.
+            # a simple solution would be to use a queue in memory a class
+            # level and a method called on timer to retry.
+            # re-raise for test, nameko catches it
+            raise

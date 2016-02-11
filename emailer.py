@@ -1,10 +1,16 @@
 import mandrill
-from nameko.rpc import rpc
+from nameko.extensions import DependencyProvider
 
-class Emailer(object):
-    name = "emailer"
+__all__ = ['Emailer','InvalidEmail','FailedSendingEmail']
 
-    @rpc
+class InvalidEmail(Exception):
+    pass
+
+class FailedSendingEmail(Exception):
+    pass
+
+class Emailer(DependencyProvider):
+
     def sendEmail(self,sender,recipient,text,key):
         # instanciate a new one every time to avoid possible
         # concurrency issues.
@@ -17,5 +23,14 @@ class Emailer(object):
             to = [ dict(email = recipient) ],
             key = key,
         )
-        result = m.messages.send(email)
-        return  result
+        try:
+            res = m.messages.send(email)
+        except mandrill.ValidationError as e:
+            raise InvalidEmail(e)
+        else:
+            result = res[0]
+            if not result['status'] == 'sent':
+                raise FailedSendingEmail('%s %s' % (result['status'],result['reject_reason']))
+
+    def get_dependency(self, worker_ctx):
+        return self
