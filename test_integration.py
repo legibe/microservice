@@ -4,6 +4,7 @@ from nameko.testing.services import entrypoint_hook
 from paymentreceived import PaymentReceived
 from paymentservice import PaymentService
 
+
 """
  the integration test consists in calling the emit_event method on the payment service
  and verify that the payment_receive service is called. To do so, we replace the
@@ -26,4 +27,4 @@ def test_payment_service_received(runner_factory, rabbit_config):
 
     with entrypoint_hook(container, "emit_event") as entry_point:
         entry_point()
-        print emailer.sendEmail.called
+        assert emailer.sendEmail.called
