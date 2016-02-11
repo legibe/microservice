@@ -17,7 +17,6 @@ from paymentservice import PaymentService
 def test_payment_service_received(runner_factory, rabbit_config):
     # run services in the normal manner
     runner = runner_factory(rabbit_config, PaymentService, PaymentReceived)
-    called = False
 
     # replace the emailer with a mock instance we will check if it was called
     emailer = replace_dependencies(get_container(runner, PaymentReceived),'emailer')
