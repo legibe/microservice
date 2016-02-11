@@ -1,7 +1,10 @@
 import mandrill
+from nameko.rpc import rpc
 
 class Emailer(object):
+    name = "emailer"
 
+    @rpc
     def sendEmail(self,sender,recipient,text,key):
         # instanciate a new one every time to avoid possible
         # concurrency issues.
@@ -15,4 +18,4 @@ class Emailer(object):
             key = key,
         )
         result = m.messages.send(email)
-        print result
+        return  result

@@ -5,15 +5,13 @@ from nameko.timer import timer
 
 fake = Factory.create()
 
-
 class PaymentService(object):
     name = "payments"
 
     dispatch = EventDispatcher()
 
-    @timer(interval=10)
-    def emit_event(self):
-        payload = {
+    def createData(self):
+        return {
             'client': {
                 'name': fake.name(),
                 'email': fake.safe_email()
@@ -29,4 +27,8 @@ class PaymentService(object):
                 )
             }
         }
+
+    @timer(interval=10)
+    def emit_event(self):
+        payload = self.createData()
         self.dispatch("payment_received", payload)

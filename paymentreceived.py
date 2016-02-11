@@ -1,8 +1,7 @@
 import os
 import yaml
-from nameko.rpc import rpc
+from nameko.rpc import RpcProxy
 from nameko.events import EventDispatcher, event_handler
-from emailer import Emailer
 
 class PaymentReceived(object):
     name = "payment_received"
@@ -11,7 +10,7 @@ class PaymentReceived(object):
     with open(os.path.join(os.path.dirname(__file__),'config.yaml')) as f:
         config = yaml.load(f)
 
-    emailer = Emailer()
+    emailer = RpcProxy("emailer")
 
     def createTemplateValues(self,payload):
         """ 
@@ -41,7 +40,7 @@ class PaymentReceived(object):
            if not we would need to validate it before using it
         """
         text = self.createEmail(self.createTemplateValues(payload))
-        self.emailer.sendEmail(
+        print self.emailer.sendEmail(
             sender = self.config['email']['sender'],
             recipient = payload['payee']['email'],
             text = text,
